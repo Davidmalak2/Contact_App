@@ -1,24 +1,30 @@
-import 'package:flutter/material.dart';
 import 'package:contact_app/view/widgets/custom_text_from_feild.dart';
+import 'package:flutter/material.dart';
+import 'package:contact_app/core/utils/app_dialog.dart';
+import 'package:contact_app/feature/data/firebase/firebase_user.dart';
+import 'package:contact_app/feature/model/contact_user.dart';
 import 'package:contact_app/view/widgets/custom_material_button.dart';
-
 class NewContactScreen extends StatefulWidget {
-  const NewContactScreen({super.key});
+  const NewContactScreen({super.key, this.user});
+  final ContactUser? user; 
 
   @override
   State<NewContactScreen> createState() => _NewContactScreenState();
 }
 
 class _NewContactScreenState extends State<NewContactScreen> {
-  // State variables & text controllers
-  String dropdownButtonValue = "Pending";
-  final TextEditingController nameController = TextEditingController();
-  final TextEditingController phoneController = TextEditingController();
-  int colorSelected = 4283215696;
+  late TextEditingController nameController;
+  late TextEditingController phoneController;
+
+  @override
+  void initState() {
+    super.initState();
+    nameController = TextEditingController(text: widget.user?.name);
+    phoneController = TextEditingController(text: widget.user?.phone);
+  }
 
   @override
   void dispose() {
-    // Clean up controllers when widget is disposed
     nameController.dispose();
     phoneController.dispose();
     super.dispose();
@@ -31,9 +37,9 @@ class _NewContactScreenState extends State<NewContactScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Text(
-          "Add New Contact",
-          style: TextStyle(
+        title: Text(
+          widget.user == null ? "Add New Contact" : "Update Contact",
+          style: const TextStyle(
             fontSize: 25,
             fontWeight: FontWeight.bold,
             color: Colors.black,
@@ -47,27 +53,26 @@ class _NewContactScreenState extends State<NewContactScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // User Name Field
               CustomTextFormField(
                 label: "Name",
                 hint: "Enter Name",
                 controller: nameController,
               ),
               const SizedBox(height: 15),
-
-              // Phone Number Field
               CustomTextFormField(
                 label: "Phone Number",
                 hint: "Enter Phone Number",
                 controller: phoneController,
               ),
-              const SizedBox(height: 25),
-
-              // Save Button
+              const SizedBox(height: 50),
               CustomMaterialButton(
-                text: "Save",
+                text: widget.user == null ? "Add New Contact" : "Update Contact",
                 onPressed: () async {
-                  // TODO: Add save logic here (e.g. Hive database)
+                  if (widget.user == null) {
+                    await addUser();
+                  } else {
+                    await updateUser();
+                  }
                 },
               ),
             ],
@@ -76,4 +81,42 @@ class _NewContactScreenState extends State<NewContactScreen> {
       ),
     );
   }
-}
+
+//add user
+  Future<void> addUser() async {
+    var name = nameController.text;
+    var phone = phoneController.text;
+
+    AppDialog.showLoading(context);
+    try {
+      await FirebaseService.addUser(ContactUser(name: name, phone: phone));
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      Navigator.of(context).pop();
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      AppDialog.showError(context, e.toString());
+    }
+  }
+
+//update user
+  Future<void> updateUser() async {
+    AppDialog.showLoading(context);
+    try {
+      await FirebaseService.update(
+        ContactUser(
+          id: widget.user!.id,
+          name: nameController.text,
+          phone: phoneController.text,
+        ),
+      );
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      Navigator.of(context).pop();
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      AppDialog.showError(context, e.toString());
+    }
+  }}

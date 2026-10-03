@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 
 class HomeScreen extends StatelessWidget {
@@ -42,7 +43,20 @@ class HomeScreen extends StatelessWidget {
       ),
     );
   }
+  void getAllContacts() async {
+    var collection = FirebaseFirestore.instance.collection("contacts");
+    var query = await collection.get();
+    var docs = query.docs;
+    var list = docs.map((doc) {
+      var map = doc.data();
+      return dataUser(map["name"], map["phone"]);
+    }).toList();
+    var users = list;
+    setState(() {});
+  }
 }
+
+void setState(Null Function() param0) {}
 // CardPerson widget to display individual contact information
 class CardPerson extends StatelessWidget {
   const CardPerson({
@@ -75,3 +89,8 @@ class CardPerson extends StatelessWidget {
       ),
     );
   }}
+  class dataUser{
+    String name;
+    String phone;
+    dataUser( this.name, this.phone);
+  }
